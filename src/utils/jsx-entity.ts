@@ -38,7 +38,7 @@ import {
   Billboard,
   MaterialTag,
   VideoTextureSource,
-  Mirror
+  Inspectable
 } from "../bit-components";
 import { inflateMediaLoader } from "../inflators/media-loader";
 import { inflateMediaFrame } from "../inflators/media-frame";
@@ -357,6 +357,7 @@ export interface JSXComponentData extends ComponentData {
   networkDebug?: boolean;
   waypointPreview?: boolean;
   pdf?: PDFParams;
+  inspectable?: boolean;
 }
 
 export interface GLTFComponentData extends ComponentData {
@@ -458,6 +459,7 @@ const jsxInflators: Required<{ [K in keyof JSXComponentData]: InflatorFn }> = {
   waypointPreview: createDefaultInflator(WaypointPreview),
   pdf: inflatePDF,
   mediaLoader: inflateMediaLoader,
+  inspectable: createDefaultInflator(Inspectable),
 
   // inflators that create Object3Ds
   mediaFrame: inflateMediaFrame,

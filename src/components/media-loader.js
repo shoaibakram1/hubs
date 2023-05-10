@@ -107,7 +107,7 @@ AFRAME.registerComponent("media-loader", {
         setMatrixWorld(mesh, originalMeshMatrix);
       } else {
         // Move the mesh such that the center of its bounding box is in the same position as the parent matrix position
-        const box = getBox(this.el, mesh);
+        const box = getBox(this.el.object3D, mesh);
         const scaleCoefficient = fitToBox ? getScaleCoefficient(0.5, box) : 1;
         const { min, max } = box;
         center.addVectors(min, max).multiplyScalar(0.5 * scaleCoefficient);
@@ -279,7 +279,7 @@ AFRAME.registerComponent("media-loader", {
       }
 
       // TODO this does duplicate work in some cases, but finish() is the only consistent place to do it
-      this.contentBounds = getBox(this.el, this.el.getObject3D("mesh")).getSize(new THREE.Vector3());
+      this.contentBounds = getBox(this.el.object3D, this.el.getObject3D("mesh")).getSize(new THREE.Vector3());
 
       el.emit("media-loaded");
       if (el.eid && entityExists(APP.world, el.eid)) {

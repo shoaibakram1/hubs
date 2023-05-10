@@ -8,17 +8,29 @@ import { qsGet } from "../utils/qs_truthy";
 const customFOV = qsGet("fov");
 const enableThirdPersonMode = qsTruthy("thirdPerson");
 import { Layers } from "../camera-layers";
+import { Inspectable } from "../bit-components";
+import { findAncestorWithComponent } from "../utils/bit-utils";
 
-function getInspectableInHierarchy(el) {
-  let inspectable = el;
-  while (inspectable) {
-    if (isTagged(inspectable, "inspectable")) {
-      return inspectable.object3D;
+function getInspectableInHierarchy(elOrEid) {
+  if (elOrEid.isEntity) {
+    let inspectable = elOrEid;
+    while (inspectable) {
+      if (isTagged(inspectable, "inspectable")) {
+        return inspectable.object3D;
+      }
+      inspectable = inspectable.parentNode;
     }
-    inspectable = inspectable.parentNode;
+
+    console.warn("could not find inspectable in hierarchy");
+    return elOrEid.object3D;
+  } else {
+    let inspectable = findAncestorWithComponent(APP.world, Inspectable, elOrEid);
+    if (!inspectable) {
+      console.warn("could not find inspectable in hierarchy");
+      inspectable = elOrEid;
+    }
+    return APP.world.eid2obj.get(inspectable);
   }
-  console.warn("could not find inspectable in hierarchy");
-  return el.object3D;
 }
 
 function pivotFor(el) {
@@ -36,9 +48,15 @@ function pivotFor(el) {
   return child.object3D;
 }
 
-export function getInspectableAndPivot(el) {
-  const inspectable = getInspectableInHierarchy(el);
-  const pivot = pivotFor(inspectable.el);
+function getInspectableAndPivot(elOrEid) {
+  const inspectable = getInspectableInHierarchy(elOrEid);
+  let pivot;
+  if (elOrEid.isEntity) {
+    pivot = pivotFor(inspectable.el);
+  } else {
+    // TODO Add support for pivotFor (avatars only)
+    pivot = inspectable;
+  }
   return { inspectable, pivot };
 }
 
@@ -119,22 +137,16 @@ const moveRigSoCameraLooksAtPivot = (function () {
     decompose(camera.matrixWorld, cwp, cwq);
     rig.getWorldQuaternion(cwq);
 
-    const box = getBox(inspectable.el, inspectable.el.getObject3D("mesh") || inspectable, true);
+    const box = getBox(inspectable, inspectable, true);
     if (box.min.x === Infinity) {
       // fix edgecase where inspectable object has no mesh / dimensions
       box.min.subVectors(owp, defaultBoxMax);
       box.max.addVectors(owp, defaultBoxMax);
     }
     box.getCenter(center);
-    const vrMode = inspectable.el.sceneEl.is("vr-mode");
+    const vrMode = APP.scene.is("vr-mode");
     const dist =
-      calculateViewingDistance(
-        inspectable.el.sceneEl.camera.fov,
-        inspectable.el.sceneEl.camera.aspect,
-        box,
-        center,
-        vrMode
-      ) * distanceMod;
+      calculateViewingDistance(APP.scene.camera.fov, APP.scene.camera.aspect, box, center, vrMode) * distanceMod;
     target.position.addVectors(
       owp,
       oForw
@@ -252,8 +264,8 @@ export class CameraSystem {
     this.mode = NEXT_MODES[this.mode] || 0;
   }
 
-  inspect(el, distanceMod, fireChangeEvent = true) {
-    const { inspectable, pivot } = getInspectableAndPivot(el);
+  inspect(elOrEid, distanceMod, fireChangeEvent = true) {
+    const { inspectable, pivot } = getInspectableAndPivot(elOrEid);
 
     this.verticalDelta = 0;
     this.horizontalDelta = 0;
@@ -282,7 +294,13 @@ export class CameraSystem {
     this.viewingCamera.updateMatrices();
     this.snapshot.matrixWorld.copy(this.viewingRig.object3D.matrixWorld);
 
-    this.snapshot.audio = !(inspectable.el && isTagged(inspectable.el, "preventAudioBoost")) && getAudio(inspectable);
+    let preventAudioBoost = false;
+    if (inspectable.el) {
+      preventAudioBoost = isTagged(inspectable.el, "preventAudioBoost");
+    } else {
+      // TODO Add when avatar is migrated
+    }
+    this.snapshot.audio = !preventAudioBoost && getAudio(inspectable);
     if (this.snapshot.audio) {
       this.snapshot.audio.updateMatrices();
       this.snapshot.audioTransform.copy(this.snapshot.audio.matrixWorld);

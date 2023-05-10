@@ -3,7 +3,8 @@ import { removeNetworkedObject } from "../../utils/removeNetworkedObject";
 import { rotateInPlaceAroundWorldUp, affixToWorldUp } from "../../utils/three-utils";
 import { getPromotionTokenForFile } from "../../utils/media-utils";
 import { hasComponent } from "bitecs";
-import { Pinnable, Pinned, Static } from "../../bit-components";
+import { MediaLoaded, Pinnable, Pinned, Static } from "../../bit-components";
+import { deleteTheDeletableAncestor } from "../../bit-systems/delete-entity-system";
 
 function getPinnedState(el) {
   return !!(hasComponent(APP.world, Pinnable, el.eid) && hasComponent(APP.world, Pinned, el.eid));
@@ -14,14 +15,24 @@ export function isMe(object) {
 }
 
 export function isPlayer(object) {
-  return !!object.el.components["networked-avatar"];
+  if (object.el.isEntity) {
+    return !!object.el.components["networked-avatar"];
+  } else {
+    // TODO Add when networked avatar is migrated
+    return false;
+  }
 }
 
 export function getObjectUrl(object) {
-  const mediaLoader = object.el.components["media-loader"];
-
-  const url =
-    mediaLoader && ((mediaLoader.data.mediaOptions && mediaLoader.data.mediaOptions.href) || mediaLoader.data.src);
+  let url;
+  if (object.el.isEntity) {
+    const mediaLoader = object.el.components["media-loader"];
+    url =
+      mediaLoader && ((mediaLoader.data.mediaOptions && mediaLoader.data.mediaOptions.href) || mediaLoader.data.src);
+  } else {
+    const urlSid = MediaLoaded.src[object.el];
+    url = APP.getString(urlSid);
+  }
 
   if (url && !url.startsWith("hubs://")) {
     return url;
@@ -56,6 +67,9 @@ export function usePinObject(hubChannel, scene, object) {
   useEffect(() => {
     const el = object.el;
 
+    // TODO Add when pinning is migrated
+    if (!el.isEntity) return;
+
     function onPinStateChanged() {
       setIsPinned(getPinnedState(el));
     }
@@ -72,7 +86,10 @@ export function usePinObject(hubChannel, scene, object) {
 
   let userOwnsFile = false;
 
-  if (el.components["media-loader"]) {
+  if (!el.isEntity) {
+    // TODO Add when pinning is migrated
+    return false;
+  } else if (el.components["media-loader"]) {
     const { fileIsOwned, fileId } = el.components["media-loader"].data;
     userOwnsFile = fileIsOwned || (fileId && getPromotionTokenForFile(fileId));
   }
@@ -117,7 +134,11 @@ export function useGoToSelectedObject(scene, object) {
 
 export function useRemoveObject(hubChannel, scene, object) {
   const removeObject = useCallback(() => {
-    removeNetworkedObject(scene, object.el);
+    if (object.el.isEntity) {
+      removeNetworkedObject(scene, object.el);
+    } else {
+      deleteTheDeletableAncestor(APP.world, object.el);
+    }
   }, [scene, object]);
 
   const el = object.el;

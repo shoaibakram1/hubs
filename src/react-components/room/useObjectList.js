@@ -1,11 +1,20 @@
 import React, { useState, useEffect, useContext, createContext, useCallback, Children, cloneElement } from "react";
 import PropTypes from "prop-types";
 import { mediaSort, getMediaType } from "../../utils/media-sorting.js";
+import { defineQuery } from "bitecs";
+import { MediaLoaded } from "../../bit-components.js";
 
-function getDisplayString(el) {
-  // Having a listed-media component does not guarantee the existence of a media-loader component,
-  // so don't crash if there isn't one.
-  const url = (el.components["media-loader"] && el.components["media-loader"].data.src) || "";
+function getDisplayString(elOrEid) {
+  let url;
+  if (!elOrEid.isEntity) {
+    const srcSid = MediaLoaded.src[elOrEid];
+    url = APP.getString(srcSid);
+  } else {
+    // Having a listed-media component does not guarantee the existence of a media-loader component,
+    // so don't crash if there isn't one.
+    url = (elOrEid.components["media-loader"] && elOrEid.components["media-loader"].data.src) || "";
+  }
+
   const split = url.split("/");
   const resourceName = split[split.length - 1].split("?")[0];
   let httpIndex = -1;
@@ -67,6 +76,7 @@ function handleDeselect(scene, object, callback) {
   }
 }
 
+const queryListedMedia = defineQuery([MediaLoaded]);
 export function ObjectListProvider({ scene, children }) {
   const [objects, setObjects] = useState([]);
   const [focusedObject, setFocusedObject] = useState(null); // The object currently shown in the viewport
@@ -83,7 +93,16 @@ export function ObjectListProvider({ scene, children }) {
         el
       }));
 
-      setObjects(objects);
+      const bitObjects = queryListedMedia(APP.world)
+        .sort(mediaSort)
+        .map(eid => ({
+          id: APP.world.eid2obj.get(eid)?.id,
+          name: getDisplayString(eid),
+          type: getMediaType(eid),
+          el: eid
+        }));
+
+      setObjects([...objects, ...bitObjects]);
     }
 
     let timeout;
@@ -111,7 +130,13 @@ export function ObjectListProvider({ scene, children }) {
       const inspectedEl = cameraSystem.inspectable && cameraSystem.inspectable.el;
 
       if (inspectedEl) {
-        const object = objects.find(o => o.el === inspectedEl);
+        const object = objects.find(o => {
+          if (!o.el.isEntity) {
+            return o.el === inspectedEl.eid;
+          } else {
+            return o.el === inspectedEl;
+          }
+        });
 
         if (object) {
           setSelectedObject(object);

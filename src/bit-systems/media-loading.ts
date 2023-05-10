@@ -151,6 +151,10 @@ function* loadMedia(world: HubsWorld, eid: EntityID) {
     }
     media = yield* loader(world, urlData);
     addComponent(world, MediaLoaded, media);
+    const srcSid = APP.getSid(urlData.accessibleUrl);
+    MediaLoaded.src[media] = srcSid;
+    const contentTypeSid = APP.getSid(urlData.contentType);
+    MediaLoaded.contentType[media] = contentTypeSid;
   } catch (e) {
     console.error(e);
     media = renderAsEntity(world, ErrorObject());
@@ -188,6 +192,9 @@ const jobs = new JobRunner();
 const mediaLoaderQuery = defineQuery([MediaLoader]);
 const mediaLoaderEnterQuery = enterQuery(mediaLoaderQuery);
 const mediaLoaderExitQuery = exitQuery(mediaLoaderQuery);
+const mediaLoadedQuery = defineQuery([MediaLoaded]);
+const mediaLoadedEnterQuery = enterQuery(mediaLoadedQuery);
+const mediaLoadedExitQuery = exitQuery(mediaLoadedQuery);
 export function mediaLoadingSystem(world: HubsWorld) {
   mediaLoaderEnterQuery(world).forEach(function (eid) {
     jobs.add(eid, clearRollbacks => loadAndAnimateMedia(world, eid, clearRollbacks));
@@ -196,6 +203,9 @@ export function mediaLoadingSystem(world: HubsWorld) {
   mediaLoaderExitQuery(world).forEach(function (eid) {
     jobs.stop(eid);
   });
+
+  mediaLoadedEnterQuery(world).forEach(eid => APP.scene?.emit("listed_media_changed"));
+  mediaLoadedExitQuery(world).forEach(eid => APP.scene?.emit("listed_media_changed"));
 
   jobs.tick();
 }
