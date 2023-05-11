@@ -2,12 +2,12 @@ import React, { useState, useEffect, useContext, createContext, useCallback, Chi
 import PropTypes from "prop-types";
 import { mediaSort, getMediaType } from "../../utils/media-sorting.js";
 import { defineQuery } from "bitecs";
-import { MediaLoaded } from "../../bit-components.js";
+import { MediaInfo } from "../../bit-components.js";
 
 function getDisplayString(elOrEid) {
   let url;
   if (!elOrEid.isEntity) {
-    const srcSid = MediaLoaded.src[elOrEid];
+    const srcSid = MediaInfo.accessibleUrl[elOrEid];
     url = APP.getString(srcSid);
   } else {
     // Having a listed-media component does not guarantee the existence of a media-loader component,
@@ -76,7 +76,7 @@ function handleDeselect(scene, object, callback) {
   }
 }
 
-const queryListedMedia = defineQuery([MediaLoaded]);
+const queryListedMedia = defineQuery([MediaInfo]);
 export function ObjectListProvider({ scene, children }) {
   const [objects, setObjects] = useState([]);
   const [focusedObject, setFocusedObject] = useState(null); // The object currently shown in the viewport

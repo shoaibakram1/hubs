@@ -155,9 +155,14 @@ export const MediaLoader = defineComponent({
   flags: Types.ui8
 });
 MediaLoader.src[$isStringType] = true;
-export const MediaLoaded = defineComponent({
-  src: Types.ui32,
-  contentType: Types.ui32
+export const MediaLoaded = defineComponent();
+export const MediaInfo = defineComponent({
+  accessibleUrl: Types.ui32,
+  canonicalUrl: Types.ui32,
+  canonicalAudioUrl: Types.ui32,
+  contentType: Types.ui32,
+  mediaType: Types.ui8,
+  thumbnail: Types.ui32
 });
 
 export const SceneRoot = defineComponent();

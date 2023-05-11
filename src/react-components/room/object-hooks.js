@@ -3,7 +3,7 @@ import { removeNetworkedObject } from "../../utils/removeNetworkedObject";
 import { rotateInPlaceAroundWorldUp, affixToWorldUp } from "../../utils/three-utils";
 import { getPromotionTokenForFile } from "../../utils/media-utils";
 import { hasComponent } from "bitecs";
-import { MediaLoaded, Pinnable, Pinned, Static } from "../../bit-components";
+import { MediaInfo, Pinnable, Pinned, Static } from "../../bit-components";
 import { deleteTheDeletableAncestor } from "../../bit-systems/delete-entity-system";
 
 function getPinnedState(el) {
@@ -30,7 +30,7 @@ export function getObjectUrl(object) {
     url =
       mediaLoader && ((mediaLoader.data.mediaOptions && mediaLoader.data.mediaOptions.href) || mediaLoader.data.src);
   } else {
-    const urlSid = MediaLoaded.src[object.el];
+    const urlSid = MediaInfo.accessibleUrl[object.el];
     url = APP.getString(urlSid);
   }
 

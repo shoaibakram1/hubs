@@ -1,7 +1,7 @@
 import { addComponent, defineQuery, enterQuery, exitQuery, hasComponent, removeComponent, removeEntity } from "bitecs";
 import { Vector3 } from "three";
 import { HubsWorld } from "../app";
-import { GLTFModel, MediaLoaded, MediaLoader, Networked, ObjectMenuTarget } from "../bit-components";
+import { GLTFModel, MediaInfo, MediaLoaded, MediaLoader, Networked, ObjectMenuTarget } from "../bit-components";
 import { inflatePhysicsShape, Shape } from "../inflators/physics-shape";
 import { ErrorObject } from "../prefabs/error-object";
 import { LoadingObject } from "../prefabs/loading-object";
@@ -151,10 +151,12 @@ function* loadMedia(world: HubsWorld, eid: EntityID) {
     }
     media = yield* loader(world, urlData);
     addComponent(world, MediaLoaded, media);
-    const srcSid = APP.getSid(urlData.accessibleUrl);
-    MediaLoaded.src[media] = srcSid;
-    const contentTypeSid = APP.getSid(urlData.contentType);
-    MediaLoaded.contentType[media] = contentTypeSid;
+    MediaInfo.accessibleUrl[media] = APP.getSid(urlData.accessibleUrl);
+    MediaInfo.canonicalUrl[media] = APP.getSid(urlData.canonicalUrl);
+    urlData.canonicalAudioUrl && (MediaInfo.canonicalAudioUrl[media] = APP.getSid(urlData.canonicalAudioUrl));
+    MediaInfo.contentType[media] = APP.getSid(urlData.contentType);
+    urlData.mediaType && (MediaInfo.mediaType[media] = urlData.mediaType);
+    addComponent(world, MediaInfo, media);
   } catch (e) {
     console.error(e);
     media = renderAsEntity(world, ErrorObject());
