@@ -79,8 +79,9 @@ const loaderForMediaType = {
     { accessibleUrl, contentType }: { accessibleUrl: string; contentType: string }
   ) => loadModel(world, accessibleUrl, contentType, true),
   [MediaType.PDF]: (world: HubsWorld, { accessibleUrl }: { accessibleUrl: string }) => loadPDF(world, accessibleUrl),
-  [MediaType.AUDIO]: (world: HubsWorld, { accessibleUrl }: { accessibleUrl: string }) => loadAudio(world, accessibleUrl),
-  [MediaType.HTML]: (world: HubsWorld, { canonicalUrl, thumbnail }: { canonicalUrl: string, thumbnail: string }) =>
+  [MediaType.AUDIO]: (world: HubsWorld, { accessibleUrl }: { accessibleUrl: string }) =>
+    loadAudio(world, accessibleUrl),
+  [MediaType.HTML]: (world: HubsWorld, { canonicalUrl, thumbnail }: { canonicalUrl: string; thumbnail: string }) =>
     loadHtml(world, canonicalUrl, thumbnail)
 };
 
@@ -99,6 +100,8 @@ function resizeAndRecenter(world: HubsWorld, media: EntityID, eid: EntityID) {
   const mediaObj = world.eid2obj.get(media)!;
   const box = new Box3();
   box.setFromObject(mediaObj);
+
+  if (box.isEmpty()) return;
 
   let scalar = 1;
   if (resize) {
